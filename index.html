@@ -7,6 +7,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary-color: #4361ee;
@@ -355,6 +357,51 @@
             justify-content: center;
             height: 150px;
         }
+        
+        /* Style dla drukarek Zebra */
+        @media print {
+            body, html {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+            
+            .zebra-label {
+                page-break-after: always;
+                padding: 0;
+                margin: 0;
+                height: 100vh;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                box-sizing: border-box;
+            }
+            
+            .zebra-code {
+                max-width: 90%;
+            }
+            
+            .zebra-text {
+                margin-top: 10px;
+                font-size: 14px;
+                font-weight: bold;
+                text-align: center;
+            }
+            
+            /* Ukryj wszystkie inne elementy przy drukowaniu */
+            body > *:not(#zebraPrintContainer) {
+                display: none !important;
+            }
+            
+            #zebraPrintContainer {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+        }
 
         .radio-group {
             display: flex;
@@ -639,6 +686,7 @@
                     <button id="downloadExcel" class="btn-secondary">Eksportuj do Excela</button>
                     <button id="printLabels" class="btn-secondary">Drukuj etykiety</button>
                     <button id="printPreview" class="btn-secondary">Podgląd wydruku</button>
+                    <button id="downloadPDF" class="btn-secondary">Eksportuj do PDF</button>
                 </div>
                 
                 <div class="preview-container">
@@ -659,6 +707,10 @@
                 
                 <div id="printContainer" class="hidden">
                     <!-- Tu będą generowane etykiety do wydruku -->
+                </div>
+                
+                <div id="zebraPrintContainer" class="hidden">
+                    <!-- Tu będą generowane etykiety do wydruku na drukarce Zebra -->
                 </div>
             </div>
         </div>
@@ -1121,10 +1173,80 @@
                 // Wybierz format wydruku
                 const printFormat = document.querySelector('input[name="printFormat"]:checked').value;
                 
-                // Wyczyść kontener wydruku
+                // Wyczyść kontenery wydruku
                 printContainer.innerHTML = '';
+                document.getElementById('zebraPrintContainer').innerHTML = '';
                 
-                if (printFormat === 'labels') {
+                if (printFormat === 'zebra') {
+                    // Format dla drukarki Zebra (jedna etykieta na stronę)
+                    const zebraContainer = document.getElementById('zebraPrintContainer');
+                    zebraContainer.classList.remove('hidden');
+                    printContainer.classList.add('hidden');
+                    
+                    // Generuj etykiety dla drukarki Zebra
+                    codes.forEach((code, index) => {
+                        const zebraLabel = document.createElement('div');
+                        zebraLabel.className = 'zebra-label';
+                        
+                        // Dodaj kod do etykiety
+                        if (type === 'QR') {
+                            const qrContainer = document.createElement('div');
+                            qrContainer.className = 'zebra-code';
+                            zebraLabel.appendChild(qrContainer);
+                            
+                            try {
+                                new QRCode(qrContainer, {
+                                    text: code,
+                                    width: 200,
+                                    height: 200,
+                                    colorDark: "#000000",
+                                    colorLight: "#ffffff",
+                                    correctLevel: QRCode.CorrectLevel.H
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania QR dla Zebra:", error);
+                                qrContainer.textContent = "Błąd QR";
+                            }
+                        } else {
+                            const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                            svgElement.className = 'zebra-code';
+                            zebraLabel.appendChild(svgElement);
+                            
+                            try {
+                                JsBarcode(svgElement, code, {
+                                    format: type,
+                                    lineColor: "#000000",
+                                    width: 2,
+                                    height: 100,
+                                    displayValue: true,
+                                    fontSize: 16,
+                                    margin: 10,
+                                    textMargin: 10
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania kodu dla Zebra:", error);
+                                const errorText = document.createElement('div');
+                                errorText.textContent = "Błąd kodu";
+                                errorText.style.color = "red";
+                                zebraLabel.appendChild(errorText);
+                            }
+                        }
+                        
+                        // Dodaj tekst kodu
+                        const codeText = document.createElement('div');
+                        codeText.className = 'zebra-text';
+                        codeText.textContent = code;
+                        zebraLabel.appendChild(codeText);
+                        
+                        zebraContainer.appendChild(zebraLabel);
+                    });
+                    
+                    // Otwórz okno wydruku
+                    window.setTimeout(function() {
+                        window.print();
+                    }, 500);
+                    
+                } else if (printFormat === 'labels') {
                     // Konfiguracja etykiet
                     const labelType = labelTypeSelect.value;
                     let labelWidth, labelHeight;
@@ -1213,6 +1335,14 @@
                         
                         labelGrid.appendChild(label);
                     });
+                    
+                    // Pokaż podgląd wydruku
+                    printContainer.classList.remove('hidden');
+                    
+                    // Otwórz okno wydruku
+                    window.setTimeout(function() {
+                        window.print();
+                    }, 500);
                 } else {
                     // Format arkusza
                     const sheetContainer = document.createElement('div');
@@ -1270,20 +1400,136 @@
                         
                         sheetContainer.appendChild(codeContainer);
                     });
+                    
+                    // Pokaż podgląd wydruku
+                    printContainer.classList.remove('hidden');
+                    
+                    // Otwórz okno wydruku
+                    window.setTimeout(function() {
+                        window.print();
+                    }, 500);
                 }
-                
-                // Pokaż podgląd wydruku
-                printContainer.classList.remove('hidden');
-                
-                // Otwórz okno wydruku
-                window.setTimeout(function() {
-                    window.print();
-                }, 500);
             });
             
             // Bezpośredni wydruk etykiet
             document.getElementById('printLabels').addEventListener('click', function() {
                 document.getElementById('printPreview').click();
+            });
+            
+            // Eksport do PDF
+            document.getElementById('downloadPDF').addEventListener('click', function() {
+                if (!window.sequenceData) return;
+                
+                const codes = window.sequenceData.codes;
+                const type = window.sequenceData.type;
+                const options = window.sequenceData.options;
+                const { jsPDF } = window.jspdf;
+                
+                // Tworzymy nowy dokument PDF
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                let pageHeight = pdf.internal.pageSize.height;
+                let pageWidth = pdf.internal.pageSize.width;
+                let margin = 10; // margines w mm
+                
+                // Generowanie PDF z kodami - każdy kod na osobnej stronie
+                const processCode = async (index) => {
+                    if (index >= codes.length) {
+                        // Wszystkie kody zostały dodane, zapisujemy PDF
+                        pdf.save('kody_kreskowe.pdf');
+                        return;
+                    }
+                    
+                    const code = codes[index];
+                    
+                    // Tworzymy tymczasowy element do wygenerowania kodu
+                    const tempContainer = document.createElement('div');
+                    tempContainer.style.backgroundColor = 'white';
+                    tempContainer.style.padding = '20px';
+                    tempContainer.style.textAlign = 'center';
+                    tempContainer.style.width = '400px';
+                    tempContainer.style.margin = '0 auto';
+                    document.body.appendChild(tempContainer);
+                    
+                    if (type === 'QR') {
+                        // Generowanie kodu QR
+                        const qrContainer = document.createElement('div');
+                        tempContainer.appendChild(qrContainer);
+                        
+                        new QRCode(qrContainer, {
+                            text: code,
+                            width: 200,
+                            height: 200,
+                            colorDark: '#000000',
+                            colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    } else {
+                        // Generowanie kodu kreskowego
+                        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        tempContainer.appendChild(svgElement);
+                        
+                        JsBarcode(svgElement, code, {
+                            format: type,
+                            lineColor: '#000000',
+                            width: 2,
+                            height: 100,
+                            displayValue: true,
+                            fontSize: 16,
+                            margin: 10
+                        });
+                    }
+                    
+                    // Dodaj tekst kodu pod kodem
+                    const textElement = document.createElement('div');
+                    textElement.textContent = code;
+                    textElement.style.marginTop = '10px';
+                    textElement.style.fontSize = '16px';
+                    textElement.style.fontWeight = 'bold';
+                    tempContainer.appendChild(textElement);
+                    
+                    // Konwertuj element na canvas za pomocą html2canvas
+                    try {
+                        const canvas = await html2canvas(tempContainer);
+                        
+                        // Wyczyść tymczasowy element
+                        document.body.removeChild(tempContainer);
+                        
+                        // Dodaj nową stronę do PDF (oprócz pierwszej strony)
+                        if (index > 0) {
+                            pdf.addPage();
+                        }
+                        
+                        // Dodaj obrazek do PDF, wyśrodkowany i z zachowaniem proporcji
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = pageWidth - (2 * margin);
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        
+                        // Wycentruj obrazek na stronie
+                        const x = margin;
+                        const y = (pageHeight - imgHeight) / 2;
+                        
+                        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                        
+                        // Przetwórz następny kod
+                        processCode(index + 1);
+                    } catch (error) {
+                        console.error('Błąd tworzenia PDF:', error);
+                        alert('Wystąpił błąd podczas tworzenia PDF. Spróbuj ponownie.');
+                        
+                        // Wyczyść tymczasowy element w przypadku błędu
+                        if (document.body.contains(tempContainer)) {
+                            document.body.removeChild(tempContainer);
+                        }
+                    }
+                };
+                
+                // Rozpocznij przetwarzanie od pierwszego kodu
+                processCode(0);
             });
             
             // Ustawienie nasłuchiwaczy zdarzeń dla pojedynczego kodu
