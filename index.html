@@ -977,6 +977,8 @@
                 
                 // Generowanie kodów i dodawanie do tabeli podglądu
                 const codes = [];
+                const codePromises = [];
+                
                 for (let i = sequence.startNum; i <= sequence.endNum; i++) {
                     // Formatowanie numeru z wiodącymi zerami, jeśli potrzebne
                     const num = i.toString().padStart(sequence.digitLength, '0');
@@ -1007,27 +1009,41 @@
                         qrContainer.style.display = 'inline-block';
                         previewContainer.appendChild(qrContainer);
                         
-                        new QRCode(qrContainer, {
-                            text: code,
-                            width: 80,
-                            height: 80,
-                            colorDark: seqQrColor,
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel[seqQrCorrection]
-                        });
+                        try {
+                            new QRCode(qrContainer, {
+                                text: code,
+                                width: 80,
+                                height: 80,
+                                colorDark: seqQrColor,
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel[seqQrCorrection]
+                            });
+                        } catch (error) {
+                            console.error("Błąd generowania QR:", error);
+                            qrContainer.textContent = "Błąd QR";
+                        }
                     } else {
                         // Generowanie kodu kreskowego
-                        const svg = document.createElement('svg');
-                        previewContainer.appendChild(svg);
+                        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        previewContainer.appendChild(svgElement);
                         
-                        JsBarcode(svg, code, {
-                            format: type,
-                            lineColor: seqLineColor,
-                            width: seqWidth,
-                            height: 40,
-                            displayValue: seqDisplayValue,
-                            fontSize: 10
-                        });
+                        try {
+                            JsBarcode(svgElement, code, {
+                                format: type,
+                                lineColor: seqLineColor,
+                                width: seqWidth,
+                                height: 40,
+                                displayValue: seqDisplayValue,
+                                fontSize: 10,
+                                margin: 5
+                            });
+                        } catch (error) {
+                            console.error("Błąd generowania kodu kreskowego:", error, code);
+                            const errorText = document.createElement('div');
+                            errorText.textContent = "Błąd kodu";
+                            errorText.style.color = "red";
+                            previewContainer.appendChild(errorText);
+                        }
                     }
                     
                     previewCell.appendChild(previewContainer);
@@ -1151,26 +1167,40 @@
                             const qrContainer = document.createElement('div');
                             label.appendChild(qrContainer);
                             
-                            new QRCode(qrContainer, {
-                                text: code,
-                                width: Math.min(options.qrSize, labelWidth * 0.8),
-                                height: Math.min(options.qrSize, labelHeight * 0.6),
-                                colorDark: options.qrColor,
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel[options.qrCorrection]
-                            });
+                            try {
+                                new QRCode(qrContainer, {
+                                    text: code,
+                                    width: Math.min(options.qrSize, labelWidth * 0.8),
+                                    height: Math.min(options.qrSize, labelHeight * 0.6),
+                                    colorDark: options.qrColor,
+                                    colorLight: "#ffffff",
+                                    correctLevel: QRCode.CorrectLevel[options.qrCorrection]
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania QR dla etykiety:", error);
+                                qrContainer.textContent = "Błąd QR";
+                            }
                         } else {
-                            const svg = document.createElement('svg');
-                            label.appendChild(svg);
+                            const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                            label.appendChild(svgElement);
                             
-                            JsBarcode(svg, code, {
-                                format: type,
-                                lineColor: options.lineColor,
-                                width: options.width,
-                                height: Math.min(options.height, labelHeight * 0.5),
-                                displayValue: options.displayValue,
-                                fontSize: 10
-                            });
+                            try {
+                                JsBarcode(svgElement, code, {
+                                    format: type,
+                                    lineColor: options.lineColor,
+                                    width: options.width,
+                                    height: Math.min(options.height, labelHeight * 0.5),
+                                    displayValue: options.displayValue,
+                                    fontSize: 10,
+                                    margin: 5
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania kodu kreskowego dla etykiety:", error);
+                                const errorText = document.createElement('div');
+                                errorText.textContent = "Błąd kodu";
+                                errorText.style.color = "red";
+                                label.appendChild(errorText);
+                            }
                         }
                         
                         // Dodaj tekst kodu
@@ -1199,25 +1229,39 @@
                             const qrContainer = document.createElement('div');
                             codeContainer.appendChild(qrContainer);
                             
-                            new QRCode(qrContainer, {
-                                text: code,
-                                width: options.qrSize,
-                                height: options.qrSize,
-                                colorDark: options.qrColor,
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel[options.qrCorrection]
-                            });
+                            try {
+                                new QRCode(qrContainer, {
+                                    text: code,
+                                    width: options.qrSize,
+                                    height: options.qrSize,
+                                    colorDark: options.qrColor,
+                                    colorLight: "#ffffff",
+                                    correctLevel: QRCode.CorrectLevel[options.qrCorrection]
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania QR dla arkusza:", error);
+                                qrContainer.textContent = "Błąd QR";
+                            }
                         } else {
-                            const svg = document.createElement('svg');
-                            codeContainer.appendChild(svg);
+                            const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                            codeContainer.appendChild(svgElement);
                             
-                            JsBarcode(svg, code, {
-                                format: type,
-                                lineColor: options.lineColor,
-                                width: options.width,
-                                height: options.height,
-                                displayValue: options.displayValue
-                            });
+                            try {
+                                JsBarcode(svgElement, code, {
+                                    format: type,
+                                    lineColor: options.lineColor,
+                                    width: options.width,
+                                    height: options.height,
+                                    displayValue: options.displayValue,
+                                    margin: 5
+                                });
+                            } catch (error) {
+                                console.error("Błąd generowania kodu kreskowego dla arkusza:", error, code);
+                                const errorText = document.createElement('div');
+                                errorText.textContent = "Błąd kodu";
+                                errorText.style.color = "red";
+                                codeContainer.appendChild(errorText);
+                            }
                         }
                         
                         const codeText = document.createElement('p');
