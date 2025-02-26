@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nowoczesny Generator Kodów Kreskowych</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #212529;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .description {
+            color: var(--text-color);
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .barcode-wrapper {
+            background-color: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 1.5rem;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            body {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+        }
+
+        .error {
+            color: #e63946;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .settings-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .settings-toggle:hover {
+            text-decoration: underline;
+            background: none;
+            transform: none;
+        }
+
+        .settings-toggle svg {
+            margin-right: 0.5rem;
+            transition: transform 0.3s;
+        }
+
+        .settings-toggle.active svg {
+            transform: rotate(90deg);
+        }
+
+        .advanced-settings {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+
+        .advanced-settings.active {
+            max-height: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nowoczesny Generator Kodów Kreskowych</h1>
+            <p class="description">Twórz profesjonalne kody kreskowe w różnych formatach</p>
+        </header>
+        
+        <div class="card">
+            <form id="barcodeForm">
+                <div class="form-group">
+                    <label for="barcodeData">Dane kodu kreskowego</label>
+                    <input type="text" id="barcodeData" placeholder="Wprowadź dane do kodowania" required>
+                    <div id="dataError" class="error hidden">Proszę wprowadzić poprawne dane</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="barcodeType">Typ kodu kreskowego</label>
+                    <select id="barcodeType">
+                        <option value="CODE128">CODE128 (alfanumeryczny)</option>
+                        <option value="EAN13">EAN-13 (13 cyfr)</option>
+                        <option value="EAN8">EAN-8 (8 cyfr)</option>
+                        <option value="UPC">UPC-A (12 cyfr)</option>
+                        <option value="CODE39">CODE39 (alfanumeryczny)</option>
+                        <option value="ITF14">ITF-14 (14 cyfr)</option>
+                        <option value="MSI">MSI (tylko cyfry)</option>
+                        <option value="pharmacode">Pharmacode (tylko cyfry)</option>
+                    </select>
+                </div>
+                
+                <button type="button" class="settings-toggle" id="settingsToggle">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    Ustawienia zaawansowane
+                </button>
+                
+                <div class="advanced-settings" id="advancedSettings">
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="lineColor">Kolor kresek</label>
+                            <input type="color" id="lineColor" value="#000000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="backgroundColor">Kolor tła</label>
+                            <input type="color" id="backgroundColor" value="#ffffff">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="width">Szerokość (px)</label>
+                            <input type="number" id="width" min="1" max="4" step="0.5" value="2">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="height">Wysokość (px)</label>
+                            <input type="number" id="height" min="10" max="150" value="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="displayValue">Pokaż tekst</label>
+                            <select id="displayValue">
+                                <option value="true">Tak</option>
+                                <option value="false">Nie</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fontSize">Rozmiar tekstu</label>
+                            <input type="number" id="fontSize" min="8" max="24" value="16">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="generateBtn">Generuj kod kreskowy</button>
+            </form>
+        </div>
+        
+        <div id="resultContainer" class="result-container hidden">
+            <div class="barcode-wrapper">
+                <svg id="barcodeOutput"></svg>
+            </div>
+            
+            <div class="buttons">
+                <button id="downloadPNG" class="btn-secondary">Pobierz jako PNG</button>
+                <button id="downloadSVG" class="btn-secondary">Pobierz jako SVG</button>
+                <button id="printBarcode" class="btn-secondary">Drukuj kod kreskowy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('barcodeForm');
+            const barcodeData = document.getElementById('barcodeData');
+            const barcodeType = document.getElementById('barcodeType');
+            const lineColor = document.getElementById('lineColor');
+            const backgroundColor = document.getElementById('backgroundColor');
+            const width = document.getElementById('width');
+            const height = document.getElementById('height');
+            const displayValue = document.getElementById('displayValue');
+            const fontSize = document.getElementById('fontSize');
+            const resultContainer = document.getElementById('resultContainer');
+            const dataError = document.getElementById('dataError');
+            const settingsToggle = document.getElementById('settingsToggle');
+            const advancedSettings = document.getElementById('advancedSettings');
+            
+            // Obsługa przycisku ustawień zaawansowanych
+            settingsToggle.addEventListener('click', function() {
+                advancedSettings.classList.toggle('active');
+                settingsToggle.classList.toggle('active');
+            });
+            
+            // Obsługa formularza
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                generateBarcode();
+            });
+            
+            // Generowanie kodu kreskowego
+            function generateBarcode() {
+                const data = barcodeData.value;
+                const type = barcodeType.value;
+                
+                // Walidacja danych
+                if (!validateData(data, type)) {
+                    dataError.classList.remove('hidden');
+                    resultContainer.classList.add('hidden');
+                    return;
+                }
+                
+                dataError.classList.add('hidden');
+                
+                // Konfiguracja opcji kodu kreskowego
+                const options = {
+                    format: type,
+                    lineColor: lineColor.value,
+                    background: backgroundColor.value,
+                    width: parseFloat(width.value),
+                    height: parseInt(height.value),
+                    displayValue: displayValue.value === 'true',
+                    fontSize: parseInt(fontSize.value)
+                };
+                
+                // Generowanie kodu kreskowego
+                try {
+                    JsBarcode("#barcodeOutput", data, options);
+                    resultContainer.classList.remove('hidden');
+                    
+                    // Przewiń do wyników
+                    resultContainer.scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    dataError.textContent = "Błąd podczas generowania kodu: " + error.message;
+                    dataError.classList.remove('hidden');
+                    resultContainer.classList.add('hidden');
+                }
+            }
+            
+            // Walidacja danych w zależności od typu kodu kreskowego
+            function validateData(data, type) {
+                if (!data) return false;
+                
+                switch (type) {
+                    case 'EAN13':
+                        return /^\d{12,13}$/.test(data);
+                    case 'EAN8':
+                        return /^\d{7,8}$/.test(data);
+                    case 'UPC':
+                        return /^\d{11,12}$/.test(data);
+                    case 'ITF14':
+                        return /^\d{14}$/.test(data);
+                    case 'MSI':
+                    case 'pharmacode':
+                        return /^\d+$/.test(data);
+                    default:
+                        return true;
+                }
+            }
+            
+            // Ustawienie nasłuchiwaczy zdarzeń dla przycisków pobrania i drukowania
+            document.getElementById('downloadPNG').addEventListener('click', function() {
+                downloadBarcode('png');
+            });
+            
+            document.getElementById('downloadSVG').addEventListener('click', function() {
+                downloadBarcode('svg');
+            });
+            
+            document.getElementById('printBarcode').addEventListener('click', function() {
+                printBarcode();
+            });
+            
+            // Pobieranie kodu kreskowego
+            function downloadBarcode(type) {
+                const svg = document.getElementById('barcodeOutput');
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(svg);
+                
+                if (type === 'svg') {
+                    // Pobierz jako SVG
+                    const blob = new Blob([svgString], {type: 'image/svg+xml'});
+                    downloadBlob(blob, 'barcode.svg');
+                } else {
+                    // Pobierz jako PNG
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // Utwórz obrazek z SVG
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                        
+                        // Pobierz jako PNG
+                        canvas.toBlob(function(blob) {
+                            downloadBlob(blob, 'barcode.png');
+                        });
+                    };
+                    
+                    // Konwertuj SVG na format URL data
+                    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                }
+            }
+            
+            // Funkcja pomocnicza do pobierania pliku
+            function downloadBlob(blob, filename) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Drukowanie kodu kreskowego
+            function printBarcode() {
+                const printWindow = window.open('', '', 'width=800,height=600');
+                const svg = document.getElementById('barcodeOutput');
+                const svgString = new XMLSerializer().serializeToString(svg);
+                
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Drukowanie kodu kreskowego</title>
+                        <style>
+                            body {
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                height: 100vh;
+                                margin: 0;
+                            }
+                            .barcode-container {
+                                text-align: center;
+                            }
+                            @media print {
+                                .no-print {
+                                    display: none;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="barcode-container">
+                            ${svgString}
+                            <p class="no-print">
+                                <button onclick="window.print()">Drukuj</button>
+                                <button onclick="window.close()">Zamknij</button>
+                            </p>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                
+                printWindow.document.close();
+            }
+            
+            // Dodanie nasłuchiwacza zmiany typu kodu
+            barcodeType.addEventListener('change', function() {
+                // Wyczyść błędy walidacji przy zmianie typu
+                dataError.classList.add('hidden');
+                
+                // Ustaw placeholder w zależności od typu kodu
+                const type = barcodeType.value;
+                switch (type) {
+                    case 'EAN13':
+                        barcodeData.placeholder = 'Wprowadź 12-13 cyfr';
+                        break;
+                    case 'EAN8':
+                        barcodeData.placeholder = 'Wprowadź 7-8 cyfr';
+                        break;
+                    case 'UPC':
+                        barcodeData.placeholder = 'Wprowadź 11-12 cyfr';
+                        break;
+                    case 'ITF14':
+                        barcodeData.placeholder = 'Wprowadź 14 cyfr';
+                        break;
+                    case 'MSI':
+                    case 'pharmacode':
+                        barcodeData.placeholder = 'Wprowadź tylko cyfry';
+                        break;
+                    default:
+                        barcodeData.placeholder = 'Wprowadź dane do kodowania';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
